@@ -5,6 +5,7 @@ craigsuck, a Craigslist RSS poller.
 Copyright (c) 2011. Jake Brukhman <jbrukh@gmail.com>. See LICENSE. 
 """
 
+import telepot
 import craigslist
 import optparse
 import time
@@ -54,18 +55,25 @@ def main(query, opts):
     Indefinitely cycles through the queries provided to the program,
     and extracts the new apartment information.
     """
+    bot = telepot.Bot('460955917:AAFZgQBMKs3gzsRFuM1k9F-Pom5RGXgtALc')
+    response = bot.getUpdates()
+    #_id = response[0]['message']['from']['id']
+    _id = '320374704'
+    #print(_id)
+
     queue = LookupQueue(opts.memory)
     while True:
         listings = craigslist.fetch_with_pages_back(query, pages=opts.pages)
         new_listings = [l for l in listings if queue.push(l['link'])]
         for listing in new_listings:
             print Template(opts.format).safe_substitute(listing)
-        process_new(new_listings)
+            process_new(bot, _id, listing)
         time.sleep(opts.sleep)
 
-def process_new(listings):
-    pass
-
+def process_new(bot, _id, item):
+    #for item in listings:
+    message = '<' + item["price"] + '>[' + item["title"] + '](' + item["link"] + ')'
+    #bot.sendMessage(_id, message, parse_mode='Markdown')
 
 if __name__ == '__main__':
     USAGE = '%prog [options] <url>'
@@ -89,6 +97,7 @@ if __name__ == '__main__':
         sys.exit(1)
     
     try:
+        #print "--> %s %s" % (args[0], opts)
         main(args[0], opts)
     except KeyboardInterrupt:
         print "Goodbye!"
