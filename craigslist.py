@@ -2,28 +2,29 @@
 Craigslist poller
 """
 
-from bs4 import BeautifulSoup 
+import bs4
+from bs4 import BeautifulSoup
 import urllib2
 import re
 
 def get_price(item):
     price = item.find('span', attrs={'class': 'result-price'})
     if price is not None:
-        return price.next_element
+        return price.contents[0]
     else:
         return 'NOPRICE'
 
 def get_location(item):
     loc = item.find('span', attrs={'class': 'result-hood'})
     if loc is not None:
-        return loc.next_element
+        return loc.contents[0]
     else:
         return 'NOLOC'
 
 def get_title(item):
     title = item.find('a', attrs={'class': 'result-title hdrlnk'})
     if title is not None:
-        return title.next_element
+        return title.contents[0]
     else:
         return 'NOTITLE' 
 
@@ -32,6 +33,7 @@ def get_link(item):
     if link is not None:
         return link.get('href')
     else:
+        #there is almost no such case
         return 'NOLINK' 
 
 def get_repost(item):
@@ -41,6 +43,22 @@ def get_repost(item):
     else:
         return x
 
+def get_body(link):
+    page = urllib2.urlopen(link)
+    html = page.read()
+
+    soup = BeautifulSoup(html, 'html.parser')
+    # get only raw text
+    result = soup.find("section", { "id" : "postingbody" })
+
+    if result is not None:
+        ret = list(filter(lambda x: (x.__class__ != bs4.element.Tag and x != u'\n'), result.contents[2:]))
+    else:
+        ret = 'NOBODY'
+
+    return ret
+    
+
 def fetch(full_url):
     page = urllib2.urlopen(full_url)
     html = page.read()
@@ -48,14 +66,17 @@ def fetch(full_url):
     soup = BeautifulSoup(html, 'html.parser')
     results = soup.findAll("li", { "class" : "result-row" })
     for item in reversed(results):
+        link = get_link(item)
+        page_body = get_body(link)
         yield {
             'id': item.get("data-pid"),
             'price': get_price(item),
             'date': item.find('time')['datetime'],
             'title': get_title(item),
             'location': get_location(item),
-            'link': get_link(item),
+            'link': link,
             'repost': get_repost(item),
+            'body': page_body
         }
 
 def fetch_with_pages_back(full_url, pages=1):

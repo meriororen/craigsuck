@@ -23,7 +23,7 @@ class LookupQueue(object):
         self.s = set()
         self.q = []
         self.size = size
-    
+
     def push(self, *items):
         for item in items:
             if item not in self.s:
@@ -32,18 +32,18 @@ class LookupQueue(object):
                 self.s.add(item)
                 self.q.append(item)
                 return item
-        
+
     def pop(self):
         item = self.q.pop(0)
         self.s.remove(item)
         return item
-        
+
     def __contains__(self, item):
         return item in self.s
-    
+
     def __len__(self):
         return len(self.q)
-        
+
     def __str__(self):
         return self.q.__str__()
 
@@ -51,16 +51,16 @@ class LookupQueue(object):
         return self.q.__str__()
 
 def main(query, opts):
-    """
-    Indefinitely cycles through the queries provided to the program,
-    and extracts the new apartment information.
-    """
     bot = telepot.Bot('460955917:AAFZgQBMKs3gzsRFuM1k9F-Pom5RGXgtALc')
     response = bot.getUpdates()
     #_id = response[0]['message']['from']['id']
     _id = '320374704'
     #print(_id)
 
+    """
+    Indefinitely cycles through the queries provided to the program,
+    and extracts the new listing information.
+    """
     queue = LookupQueue(opts.memory)
     while True:
         listings = craigslist.fetch_with_pages_back(query, pages=opts.pages)
@@ -73,7 +73,8 @@ def main(query, opts):
 def process_new(bot, _id, item):
     #for item in listings:
     message = '<' + item["price"] + '>[' + item["title"] + '](' + item["link"] + ')'
-    #bot.sendMessage(_id, message, parse_mode='Markdown')
+    print 'sending %s' % message
+    bot.sendMessage(_id, message, parse_mode='Markdown')
 
 if __name__ == '__main__':
     USAGE = '%prog [options] <url>'
@@ -84,18 +85,18 @@ if __name__ == '__main__':
             help='polling period, in seconds')
     parser.add_option('-f', '--format', dest='format', default='${date}\t${title}', type='string',
             help="output format, using Python formatting; available fields are ['date', 'title', 'link'] and \
-			the default format is '${date}\\t${title}'")
+                    the default format is '${date}\\t${title}'")
     parser.add_option('-p', '--pages', dest='pages', default=1, type='int',
             help="the number of pages back from this url, if possible, up to 10")
     opts, args = parser.parse_args()
-   
+
     if len(args)>1 or len(args)<0:
         print "Please provide exactly one url."
         sys.exit(1)
     if opts.pages<0 or opts.pages>10:
         print "Ten pages back maximum."
         sys.exit(1)
-    
+
     try:
         #print "--> %s %s" % (args[0], opts)
         main(args[0], opts)
